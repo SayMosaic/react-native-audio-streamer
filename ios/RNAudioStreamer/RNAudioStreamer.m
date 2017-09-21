@@ -23,11 +23,14 @@ static NSString *ERROR = @"ERROR";
 @interface RNAudioStreamer ()
 @property(strong, nonatomic) DOUAudioStreamer *player;
 @property(strong, nonatomic) RNAudioFileURL *douUrl;
+@property (class, assign) BOOL justInitialized;
+
 @end
 
 @implementation RNAudioStreamer
 
 static void *kStatusKVOKey = &kStatusKVOKey;
+static BOOL justInitialized = YES;
 
 @synthesize bridge = _bridge;
 
@@ -37,17 +40,7 @@ RCT_EXPORT_METHOD(setUrl:(NSString *)urlString){
 
     [self killPlayer];
 
-    //Audio session
-    NSError *err;
-    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&err];
-    if (!err){
-        [[AVAudioSession sharedInstance] setActive:YES error:&err];
-        if(err) NSLog(@"Audio session error");
-    }else{
-        NSLog(@"Audio session error");
-    }
-
-
+    
     NSURL *url = [[NSURL alloc] initWithString:urlString];
     _douUrl = [[RNAudioFileURL alloc] init];
     _douUrl.url = url;
@@ -58,14 +51,32 @@ RCT_EXPORT_METHOD(setUrl:(NSString *)urlString){
               forKeyPath:@"status"
                  options:NSKeyValueObservingOptionNew
                  context:kStatusKVOKey];
+    
+    justInitialized = YES;
 }
 
 RCT_EXPORT_METHOD(play) {
-    if(_player) [_player play];
+    if(_player) {
+        AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+                [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord
+                      withOptions: (AVAudioSessionCategoryOptionAllowBluetoothA2DP |AVAudioSessionCategoryOptionDefaultToSpeaker)
+                            error:nil];
+        
+        [_player play];
+    }
 }
 
 RCT_EXPORT_METHOD(pause) {
-    if(_player) [_player pause];
+    if(_player) {
+        if (justInitialized) {
+            AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+            [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord
+                          withOptions: (AVAudioSessionCategoryOptionAllowBluetoothA2DP |AVAudioSessionCategoryOptionDefaultToSpeaker)
+                                error:nil];
+            justInitialized = NO;
+        }
+       [_player pause];
+    }
 }
 
 RCT_EXPORT_METHOD(seekToTime: (double)time) {
