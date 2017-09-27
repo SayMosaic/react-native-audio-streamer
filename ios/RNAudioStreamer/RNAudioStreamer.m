@@ -95,6 +95,10 @@ RCT_EXPORT_METHOD(status:(RCTResponseSenderBlock)callback){
     callback(@[[NSNull null], _player ? [self rnStatusFromDouStatus] : STOPPED]);
 }
 
+RCT_EXPORT_METHOD(setVolume: (double) volume) {
+    if (_player) [_player setVolume:volume];
+}
+
 /**
  *  Status KVO
  */
